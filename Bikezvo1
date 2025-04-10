@@ -1,0 +1,51 @@
+from telegram import Update, KeyboardButton, ReplyKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
+
+TOKEN = "YOUR_BOT_TOKEN"
+
+# Режим работы
+WORKING_HOURS = "Пн-Вс: 10:00 – 21:00"
+
+# Список велосипедов
+bikes = ["Городской", "Горный", "Детский"]
+
+# /start
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Привет! Я бот велопроката.\n\nДоступные команды:\n/rent — Арендовать\n/location — Отправить геолокацию\n/pay — Оплата\n/hours — Режим работы")
+
+# /rent
+async def rent(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = "Доступные велосипеды:\n" + "\n".join([f"{i+1}. {bike}" for i, bike in enumerate(bikes)])
+    await update.message.reply_text(text + "\n\nНапиши номер велосипеда, чтобы выбрать.")
+
+# /location
+async def location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [[KeyboardButton("Отправить геолокацию", request_location=True)]]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True, one_time_keyboard=True)
+    await update.message.reply_text("Пожалуйста, отправь свою геолокацию:", reply_markup=reply_markup)
+
+# Получение координат
+async def handle_location(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_location = update.message.location
+    await update.message.reply_text(f"Спасибо! Ты находишься рядом с точкой проката.\nКоординаты: {user_location.latitude}, {user_location.longitude}")
+
+# /pay
+async def pay(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Для оплаты перейдите по ссылке:\nhttps://ваш-сайт.рф/оплата")
+
+# /hours
+async def hours(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"Режим работы:\n{WORKING_HOURS}")
+
+# Сборка приложения
+app = ApplicationBuilder().token(TOKEN).build()
+
+# Обработчики
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("rent", rent))
+app.add_handler(CommandHandler("location", location))
+app.add_handler(CommandHandler("pay", pay))
+app.add_handler(CommandHandler("hours", hours))
+app.add_handler(MessageHandler(filters.LOCATION, handle_location))
+
+app.run_polling()
